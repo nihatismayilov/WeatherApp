@@ -7,6 +7,7 @@
 
 import UIKit
 import CoreLocation
+import SDWebImage
 
 class ViewController: UIViewController {
     
@@ -37,42 +38,59 @@ class ViewController: UIViewController {
                 if data != nil {
                     
                     do {
-                        let jsonResponse = try JSONSerialization.jsonObject(with: data!, options: JSONSerialization.ReadingOptions.mutableContainers) as! Dictionary<String, Any>
+                        let group = DispatchGroup()
+                        let decoder = try JSONDecoder().decode(WeatherResponse.self, from: data!)
                         
-                        DispatchQueue.main.async {
-                            //print (jsonResponse)
-                            
-                            if let location = jsonResponse["location"] as? [String: Any] {
-                                //print(location)
-                                
-                                if let name = location["name"] as? String {
-                                    if let country = location["country"] as? String {
-                                        self.countryNameLabel.text = "\(name), \(country)"
-                                    }
-                                }
-                                if let time = location["localtime"] as? String {
-                                    self.dateLabel.text = time
-                                }
+                            DispatchQueue.main.async {
+                                self.countryNameLabel.text = "\(decoder.location?.name ?? "-"), \(decoder.location?.country ?? "-")"
+                                self.dateLabel.text = decoder.location?.localtime ?? "-"
+                                self.weatherConditionLabel.text = decoder.current?.weather_descriptions?[0] ?? "-"
+                                self.temperatureLabel.text = "\(decoder.current?.temperature ?? 0)"
+                                self.windLabel.text = "\(decoder.wind_speed ?? 0)km/h"
+                                self.humidityLabel.text = "\(decoder.current?.humidity ?? 0)%"
+                                self.visibilityLabel.text = "\(decoder.current?.visibility ?? 0)km"
+                                print(decoder.current?.weather_icons)
+                                self.imageView.sd_setImage(with: URL.init(string:  decoder.current?.weather_icons?[0] ?? "-"))
                             }
-                            if let current = jsonResponse["current"] as? [String: Any] {
-                                //(current)
-                                if let weather_descriptions = current["weather_descriptions"] as? Array<String> {
-                                    self.weatherConditionLabel.text = String(weather_descriptions[0])
-                                }
-                                if let temperature = current["temperature"] as? Int {
-                                    self.temperatureLabel.text = "\(temperature)°"
-                                }
-                                if let wind_speed = current["wind_speed"] as? Int {
-                                    self.windLabel.text = "\(wind_speed)km/h"
-                                }
-                                if let humidity = current["humidity"] as? Int {
-                                    self.humidityLabel.text = "\(humidity)%"
-                                }
-                                if let visibility = current["visibility"] as? Int {
-                                    self.visibilityLabel.text = "\(visibility)km"
-                                }
-                            }
-                        }
+                        
+//                        let jsonResponse = try JSONSerialization.jsonObject(with: data!, options: JSONSerialization.ReadingOptions.mutableContainers) as! Dictionary<String, Any>
+//
+//                        print(jsonResponse)
+//
+//                        DispatchQueue.main.async {
+//                            print (jsonResponse)
+//
+//                            if let location = jsonResponse["location"] as? [String: Any] {
+//                                //print(location)
+//
+//                                if let name = location["name"] as? String {
+//                                    if let country = location["country"] as? String {
+//                                        self.countryNameLabel.text = "\(name), \(country)"
+//                                    }
+//                                }
+//                                if let time = location["localtime"] as? String {
+//                                    self.dateLabel.text = time
+//                                }
+//                            }
+//                            if let current = jsonResponse["current"] as? [String: Any] {
+//                                //(current)
+//                                if let weather_descriptions = current["weather_descriptions"] as? Array<String> {
+//                                    self.weatherConditionLabel.text = String(weather_descriptions[0])
+//                                }
+//                                if let temperature = current["temperature"] as? Int {
+//                                    self.temperatureLabel.text = "\(temperature)°"
+//                                }
+//                                if let wind_speed = current["wind_speed"] as? Int {
+//                                    self.windLabel.text = "\(wind_speed)km/h"
+//                                }
+//                                if let humidity = current["humidity"] as? Int {
+//                                    self.humidityLabel.text = "\(humidity)%"
+//                                }
+//                                if let visibility = current["visibility"] as? Int {
+//                                    self.visibilityLabel.text = "\(visibility)km"
+//                                }
+//                            }
+//                        }
                     } catch {
                         print ("error")
                     }
@@ -85,3 +103,22 @@ class ViewController: UIViewController {
 
 }
 
+struct WeatherResponse: Decodable {
+    let location: Location?
+    let current: Current?
+    let wind_speed: Int?
+}
+
+struct Location: Decodable {
+    let country: String?
+    let name: String?
+    let localtime: String?
+}
+
+struct Current: Decodable {
+    let humidity: Int?
+    let temperature: Int?
+    let visibility: Int?
+    let weather_descriptions: [String]?
+    let weather_icons: [String]?
+}
